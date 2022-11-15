@@ -32,7 +32,7 @@ public class ListViewActivity extends Activity {
                 R.layout.layout_list_item,
                 new String[]{"point","time","nacl"},
                 new int[]{R.id.tv_title,R.id.tv_time,R.id.tv_text});
-//        DataListAdapter adapter1 = new DataListAdapter(ListViewActivity.this,
+//        DataListAdapter adapter = new DataListAdapter(ListViewActivity.this,
 //                listData,
 //                R.layout.layout_list_item,
 //                new String[]{"point","time","nacl"},

@@ -1,5 +1,7 @@
 package com.example.mqtt_boat;
-
+/**
+ * 媒体数据类
+ */
 public class MyVideo {
     private String videoTitle;
     private String videoUrl;

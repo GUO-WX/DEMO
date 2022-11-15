@@ -34,15 +34,6 @@
                 android:textColor="@color/black"
                 android:textSize="15sp" />
 
-            <TextView
-                android:id="@+id/txt_point_ID"
-                android:layout_width="120dp"
-                android:layout_height="wrap_content"
-                android:text="1"
-                android:textColor="@color/black"
-                android:visibility="gone"
-                android:textSize="15sp" />
-
             <RadioGroup
                 android:id="@+id/rg_simple"
                 android:layout_width="match_parent"
@@ -145,18 +136,6 @@
             android:layout_width="match_parent"
             android:layout_height="80dp"
             android:gravity="center">
-
-            <Button
-                android:id="@+id/btn_toMain"
-                android:layout_width="60dp"
-                android:layout_height="60dp"
-                android:layout_gravity="center"
-                android:layout_margin="10dp"
-                android:background="@drawable/selecor"
-                android:text="返回"
-                android:textColor="#CC0033"
-                android:textSize="18sp"
-                android:textStyle="bold" />
 
             <Button
                 android:layout_width="60dp"

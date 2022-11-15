@@ -1,6 +1,6 @@
 package com.example.mqtt_boat;
 /**
- * Created by littlecurl 2018/6/24
+ * 登录用户数据类
  */
 public class User {
     private String name;            //用户名

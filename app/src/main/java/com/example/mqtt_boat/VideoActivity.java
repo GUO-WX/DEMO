@@ -33,10 +33,10 @@ public class VideoActivity extends AppCompatActivity {
 
     private VideoView mVideoView;                   // 视频播放器
     private StandardVideoController controller;     // 播放控制器
-    //视屏切换封面
+    //视屏切换封面【网络地址】
     private String cover_url = "https://gimg2.baidu.com/image_search/src=http%3A%2F%2F5b0988e595225.cdn.sohucs.com%2Fimages%2F20200204%2F09078d00427944f2a09c5078aeefe947.jpeg&refer=http%3A%2F%2F5b0988e595225.cdn.sohucs.com&app=2002&size=f9999,10000&q=a80&n=0&g=0n&fmt=jpeg?sec=1633788695&t=7fc5835a4fbad975a8dba2860bda404d";
     // 视频资源
-    private HashMap<String, MyVideo> hm_videos = new HashMap<String, MyVideo>();    // 键-视频id, 值-视频信息构成的对象
+    private HashMap<String, MyVideo> hm_videos = new HashMap<String, MyVideo>();                  // 键-视频id, 值-视频信息构成的对象
     private String selected_videoID = new String();                                 // 待播放视频的id
     private String[] permissions = {Manifest.permission.WRITE_EXTERNAL_STORAGE};
 
@@ -92,9 +92,9 @@ public class VideoActivity extends AppCompatActivity {
                     Log.d("Output", "VideoView.STATE_PAUSED");
                 } else if (playState == VideoView.STATE_PLAYBACK_COMPLETED) {           // 视频播放完成时触发
                     Log.d("Output", "VideoView.STATE_PLAYBACK_COMPLETED");
-                } else if (playState == VideoView.STATE_BUFFERING) {                      // 跳转到某一位置，开始缓冲时触发
+                } else if (playState == VideoView.STATE_BUFFERING) {                    // 跳转到某一位置，开始缓冲时触发
                     Log.d("Output", "VideoView.STATE_BUFFERING");
-                } else if (playState == VideoView.STATE_BUFFERED) {                       // 跳转到某一位置，缓冲完成后触发
+                } else if (playState == VideoView.STATE_BUFFERED) {                     // 跳转到某一位置，缓冲完成后触发
                     Log.d("Output", "VideoView.STATE_BUFFERED");
                 }
             }
@@ -153,7 +153,6 @@ public class VideoActivity extends AppCompatActivity {
         String videoUrl = myVideo.getVideoUrl();        // 选中视频的url
         Boolean isLive = myVideo.getLive();             // 选中视频是否为直播类型
         String videoID = myVideo.getVideoID();          // 选中视频的id
-
         initMyPlayer(cover_url, videoTitle, videoUrl, isLive, true);    // 切换到新视频并自动播放
     }
 
@@ -176,14 +175,14 @@ public class VideoActivity extends AppCompatActivity {
         controller.addControlComponent(prepareView);                // 把封面添加到控制器
 
         // 释放当前正在播放的视频
-        mVideoView.setVideoController(null);    // 移除Controller
-        mVideoView.release();                   // 释放当前播放的视频
+        mVideoView.setVideoController(null);                        // 移除Controller
+        mVideoView.release();                                       // 释放当前播放的视频
 
         // 加载新的视频
-        mVideoView.setVideoController(controller);      // 把控制器添加到播放器
-        mVideoView.setUrl(videoUrl);                  // 设置待播放视频的地址
+        mVideoView.setVideoController(controller);                  // 把控制器添加到播放器
+        mVideoView.setUrl(videoUrl);                                // 设置待播放视频的地址
 
-        if (autoStart) mVideoView.start();               // 播放视频
+        if (autoStart) mVideoView.start();                          // 播放视频
     }
 
 
@@ -238,7 +237,7 @@ public class VideoActivity extends AppCompatActivity {
         switch (id) {
             case R.id.screen_shot:
                 ImageView imageView = findViewById(R.id.iv_screen_shot);
-                Bitmap bitmap = mVideoView.doScreenShot();  //定义一个接收截图的类型
+                Bitmap bitmap = mVideoView.doScreenShot();                         //定义一个接收截图的类型
                 imageView.setImageBitmap(bitmap);
                 ImgUtils.saveImageToGallery2(VideoActivity.this, bitmap);  //调用ImgUtils类
                 break;

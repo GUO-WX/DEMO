@@ -12,6 +12,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.view.View;
 import android.view.Window;
+import android.view.WindowManager;
 import android.widget.CompoundButton;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -26,8 +27,6 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.baidu.location.BDAbstractLocationListener;
-import com.baidu.location.BDLocation;
 import com.baidu.location.LocationClient;
 import com.baidu.mapapi.SDKInitializer;
 import com.baidu.mapapi.map.BaiduMap;
@@ -67,17 +66,11 @@ import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity {
 
-    //电子地图参数
     MapView mapView;
     BaiduMap BD_View;
-//    public List<LatLng>  USV_LatLonList;
-//    public List<LatLng> USV_LatLonList = new ArrayList<LatLng>();
-
     boolean isFirstLocate =true;
     LocationClient mLocationClient;
     private int showmap_flag = 0;
-    private int showpoint_flag = 0;
-    List<LatLng> points;
     private double g_lon;
     private double g_lat;
     private float g_dir;
@@ -111,7 +104,6 @@ public class MainActivity extends AppCompatActivity {
     private RadioButton selectedPoint;
 
     private int pump_flag = 0;
-    private int setPoint_flag = 0;
     private int mode_flag = 1;
     private ImageView show_map;
     private ImageView pump_off;
@@ -125,7 +117,6 @@ public class MainActivity extends AppCompatActivity {
     private TextView text_nacl;
     private TextView txt_onoff;
     private LinearLayout ly_test;
-    //    private RelativeLayout list_point;
     private FrameLayout layout_whool;
     private LinearLayout data_bases;
     private LinearLayout HKVision;
@@ -148,7 +139,7 @@ public class MainActivity extends AppCompatActivity {
     private RadioGroup Sample_Rg;
     private RadioButton homeward;
     private RadioButton planPath;
-
+    List<LatLng> USV_points = new ArrayList<LatLng>();
 
     WaterDataBase waterDataBase;
     SQLiteDatabase database;
@@ -160,39 +151,34 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         SDKInitializer.initialize(getApplicationContext());
 //        fullScreenConfig();  // 全屏显示
-        setContentView(R.layout.activity_main);  //载入对应界面
-        sp = getSharedPreferences("setSimple",MODE_PRIVATE);
+        setContentView(R.layout.activity_main);
+        sp = getSharedPreferences("setSimple",MODE_PRIVATE);                                  //采样点信息，通过规划存储在应用内存
 
-        waterDataBase = new WaterDataBase(this);//实例化水质数据库
-        database = waterDataBase.getWritableDatabase(); //声明数据库单元
+        waterDataBase = new WaterDataBase(this);                                            //实例化水质数据库
+        database = waterDataBase.getWritableDatabase();                                             //声明数据库单元
 
-        ui_init();//变量初始化，规范化写法
-        bindViews(); //转速调节杆的调用函数
-        points = new ArrayList<>();
-
-        mLocationClient = new LocationClient(getApplicationContext()); //实例化定位对象
-        mLocationClient.registerLocationListener(new MainActivity.MyLocationListener());
+        ui_init();                                                                                  //变量初始化，规范化写法
+        bindViews();                                                                                //转速调节杆的调用函数
+        initJoystick();                                                                             //初始化手动控制摇杆
 
         BD_View = mapView.getMap();
 //        BD_View.setMapLanguage(MapLanguage.ENGLISH);//英文版电子地图！
         BD_View.setMapType(BaiduMap.MAP_TYPE_NORMAL);
         BD_View.setMyLocationEnabled(true);
 
-
         //水泵开关按钮的点击事件
         Pump_Switch.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (pump_flag == 0)     //led_flag为水泵状态的标志位
+                if (pump_flag == 0)                                                                 //led_flag为水泵状态的标志位
                 {
-                    //调用publishmessageplus发布主题信息（主题，内容）
                     publishmessageplus(mqtt_pub_switchpump, "{\"pump\":11}");
-                    pump_flag = 1;                    //状态标志位变更,打开1，关闭0
-                    txt_onoff.setText("关闭水泵");   //文本提示变更
-                    pump_on.clearAnimation();      //切换水泵图片，使界面直观显示水泵状态，清空图片状态
-                    pump_on.setVisibility(View.VISIBLE); //隐藏图片
-                    pump_off.clearAnimation();   //清空图片状态
-                    pump_off.setVisibility(View.INVISIBLE);// 使图片可见
+                    pump_flag = 1;                                                                  //状态标志位变更,打开1，关闭0
+                    txt_onoff.setText("关闭水泵");                                                    //文本提示变更
+                    pump_on.clearAnimation();                                                       //切换水泵图片，使界面直观显示水泵状态，清空图片状态
+                    pump_on.setVisibility(View.VISIBLE);                                            //隐藏图片
+                    pump_off.clearAnimation();                                                      //清空图片状态
+                    pump_off.setVisibility(View.INVISIBLE);                                         // 使图片可见
                 } else {
                     publishmessageplus(mqtt_pub_switchpump, "{\"pump\":10}");
                     pump_flag = 0;
@@ -211,31 +197,28 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 if (mode_flag == 1)     //
                 {
-                    //调用publishmessageplus发布主题信息（主题，内容）
                     publishmessageplus(mqtt_pub_mode, "{\"Mode\":0}");
-                    Sample_Rg.setVisibility(View.INVISIBLE);    //使采样点单选组不可见
-                    layout_whool.setVisibility(View.VISIBLE);   //使手动摇杆可见
+                    Sample_Rg.setVisibility(View.INVISIBLE);                                        //使采样点单选组不可见
+                    layout_whool.setVisibility(View.VISIBLE);                                       //使手动摇杆可见
                     //改变界面图标
-                    mode_flag = 0;                    //状态标志位变更
-                    //txt_mode.setText("定点追踪");   //文本提示变更
-                    txt_mode.setText("AUTO");
-                    self_motion.clearAnimation();      //清空图片状态
-                    self_motion.setVisibility(View.VISIBLE); //隐藏图片
+                    mode_flag = 0;
+                    txt_mode.setText("定点追踪");
+//                    txt_mode.setText("AUTO");
+                    self_motion.clearAnimation();                                                   //清空图片状态
+                    self_motion.setVisibility(View.VISIBLE);                                        //隐藏图片
                     operation.clearAnimation();
-                    operation.setVisibility(View.INVISIBLE);// 使图片可见
+                    operation.setVisibility(View.INVISIBLE);                                        // 使图片可见
                 } else {
                     publishmessageplus(mqtt_pub_mode, "{\"Mode\":1}");
                     mode_flag = 1;
                     Sample_Rg.setVisibility(View.VISIBLE);
                     layout_whool.setVisibility(View.INVISIBLE);
-                    txt_mode.setText("手动模式");   //文本提示变更
+                    txt_mode.setText("手动模式");
                     homeward.setChecked(true);
-                    operation.clearAnimation();      //清空图片状态
-                    operation.setVisibility(View.VISIBLE); //隐藏图片
+                    operation.clearAnimation();
+                    operation.setVisibility(View.VISIBLE);
                     self_motion.clearAnimation();
-                    self_motion.setVisibility(View.INVISIBLE);// 使图片可见
-
-
+                    self_motion.setVisibility(View.INVISIBLE);
                 }
             }
         });
@@ -244,108 +227,94 @@ public class MainActivity extends AppCompatActivity {
         ly_test.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-//                publishmessageplus(mqtt_pub_mode,"{\"Mode\":0}");
-                ProgressDialog progressDialog = new ProgressDialog(MainActivity.this);   //实例化等待进度对话框
-                progressDialog.setTitle("提示");      //对话框标题
-                progressDialog.setMessage("水质检测中……");   //对话框提示内容
-                //涉及进度侦听事件，此处为演示用代码
+                ProgressDialog progressDialog = new ProgressDialog(MainActivity.this);      //实例化等待进度对话框
+                progressDialog.setTitle("提示");                                                     //对话框标题
+                progressDialog.setMessage("水质检测中……");                                            //对话框提示内容
+                //涉及进度侦听事件，此处为演示用代码【随机生成盐度数据】
                 progressDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
                     @Override
                     public void onCancel(DialogInterface dialog) {
                         int max = 100, min = 1;
                         int ran2 = (int) (Math.random() * (max - min) + min);
                         String nacl_1 = String.valueOf(ran2);
-
-                        text_nacl.setText("盐度：" + nacl_1 + "‰");     //为展示APP数据效果，暂时在此将数据“写死”后期在此接入传感器数据
+                        text_nacl.setText("盐度：" + nacl_1 + "‰");                                  //为展示APP数据效果，暂时在此将数据“写死”后期在此接入传感器数据
                         Toast.makeText(MainActivity.this, "检测完成", Toast.LENGTH_SHORT).show();//弹窗功能
-                        //publishmessageplus(mqtt_pub_mode,"{\"Mode\":1}");
                     }
                 });
                 progressDialog.show();    //显示等待进度对话框
             }
         });
 
-        //跳转数据记录界面
+        //跳转数据记录界面【涉及界面跳转、传值、数据库操作】
         data_bases.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-//                测试是否可以传值
-                String sql = "select * from user order by 时间 desc";   //数据库操作语句，按时间排序，检索数据库
-                Cursor cursor = database.rawQuery(sql, null);  //操作数据库的光标
-                ArrayList<Map<String, String>> listData = cursorCursorToList(cursor);  //界面传值动态数组
-                Bundle bundle = new Bundle();   //实例化传值数据类型
-                bundle.putSerializable("data", listData);  //通过bundle对数据进行封装
-                Intent intent = new Intent(MainActivity.this, ListViewActivity.class);  //初始化历史数据界面
-                intent.putExtras(bundle);    //传递的数据是bundle类型
-                startActivity(intent);    //启动界面
+                String sql = "select * from user order by 时间 desc";                                //数据库操作语句，按时间排序，检索数据库
+                Cursor cursor = database.rawQuery(sql, null);                           //操作数据库的光标
+                ArrayList<Map<String, String>> listData = cursorCursorToList(cursor);               //界面传值动态数组
+                Bundle bundle = new Bundle();                                                       //实例化传值数据类型
+                bundle.putSerializable("data", listData);                                           //通过bundle对数据进行封装
+                Intent intent = new Intent(MainActivity.this, ListViewActivity.class);//初始化水质历史数据界面
+                intent.putExtras(bundle);                                                           //传递的数据是bundle类型
+                startActivity(intent);                                                              //启动界面
             }
         });
 
-        //跳转摄像头实况界面
+        //长按跳转本地试航视频播放界面、单击跳转摄像头实况界面
         HKVision.setOnLongClickListener(new MyVideoListenr());
-
         HKVision.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent = new Intent(MainActivity.this, VideoActivity.class); //初始化摄像头界面
-                startActivity(intent); //启动界面
+                Intent intent = new Intent(MainActivity.this, VideoActivity.class);   //初始化摄像头界面
+                startActivity(intent);                                                              //启动界面
             }
         });
 
-        //跳转电子地图界面
+        //长按跳转路径规划界面、单机打开电子地图
+        show_map.setOnLongClickListener(new MyOnLongClickListenr());
         show_map.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
+                //通过标识判断隐藏or显示电子地图
                 if(showmap_flag==0){
-                    mapView.setVisibility(View.VISIBLE);// 使图片可见
+                    mapView.setVisibility(View.VISIBLE);
                     showmap_flag=1;
                 }else {
-                    mapView.setVisibility(View.GONE);// 使图片可见
+                    mapView.setVisibility(View.GONE);
                     showmap_flag=0;
                 }
-
-//                Intent intent = new Intent(MainActivity.this, MapActivity.class); //初始化电子地图界面
-//                startActivity(intent); //启动界面
             }
         });
-        show_map.setOnLongClickListener(new MyOnLongClickListenr());
 
         //跳转水质指标本地网页界面
         txt_GB.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-//                Intent intent = new Intent(MainActivity.this, WebViewActivity.class);//初始化指标网页界面
-//                startActivity(intent);//启动界面
-
-                showpoint_flag = 1;
+                Intent intent = new Intent(MainActivity.this, WebViewActivity.class); //初始化本地指标网页界面
+                startActivity(intent);                                                              //启动界面
             }
         });
 
-        //路径节点标定
+        //切换规划路径节点顺序标定or实时目标点的标定
         mSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked){
                     publishmessageplus(mqtt_pub_setPoint, "{\"setPoint\":10}");
                     planPath.setVisibility(View.VISIBLE);
-                    Toast.makeText(MainActivity.this, "请选择采样点", Toast.LENGTH_SHORT).show();//弹窗功能
+//                    Toast.makeText(MainActivity.this, "请选择采样点", Toast.LENGTH_SHORT).show();//弹窗功能
                 }else {
                     publishmessageplus(mqtt_pub_setPoint, "{\"setPoint\":11}");
                     planPath.setVisibility(View.INVISIBLE);
-                    Toast.makeText(MainActivity.this, "请标定路径点", Toast.LENGTH_SHORT).show();//弹窗功能
+//                    Toast.makeText(MainActivity.this, "请标定路径点", Toast.LENGTH_SHORT).show();//弹窗功能
                 }
             }
         });
-
 
         //选择用艇指令事件【单选】
         USV_Rg.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(RadioGroup group, int checkedId) {
-//                RadioButton radioButton = group.findViewById(checkedId);//调用打印方法
-//                Toast.makeText(MainActivity.this,radioButton.getText(),Toast.LENGTH_SHORT).show();
-                //调用publishmessageplus函数，向云端服务器指定的话题，发送定义的通讯协议数据。
                 if (R.id.rb_no1 == checkedId) {
                     publishmessageplus(mqtt_pub_chooseboat, "{\"Choose_boat\":0}");
                 } else if (R.id.rb_no2 == checkedId) {
@@ -360,64 +329,51 @@ public class MainActivity extends AppCompatActivity {
         Sample_Rg.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(RadioGroup group, int checkedId) {
-//                RadioButton radioButton = group.findViewById(checkedId);//调用打印方法
-//                Toast.makeText(MainActivity.this,radioButton.getText(),Toast.LENGTH_SHORT).show();
                 if (R.id.rb_Planning == checkedId) {
                     publishmessageplus(mqtt_pub_mode, "{\"Mode\":2}");
                 } else {
                     publishmessageplus(mqtt_pub_mode, "{\"Mode\":1}");
                     if (R.id.rb_aim1 == checkedId) {
-                        String po = sp.getString("LON1","").substring(0, 11);//这里注意，LabVIEW下位机的数据解析！是否改成11？
+                        String po = sp.getString("LON1","").substring(0, 11);//这里注意，LabVIEW下位机的数据解析精度！是否改成11or12？
                         String pa = sp.getString("LAT1","").substring(0, 11);
                         Toast.makeText(MainActivity.this,"采样点①"+"\r\n"+"经度："+po+"\r\n"+"纬度："+pa,Toast.LENGTH_SHORT).show();
                         publishmessageplus(mqtt_pub_position, "{\"Position\":{\"Lon\":"+po+",\"Lat\":"+pa+"}}");
                     } else if (R.id.rb_aim2 == checkedId) {
-                        String po = sp.getString("LON2","").substring(0, 11);//这里注意，LabVIEW下位机的数据解析！
+                        String po = sp.getString("LON2","").substring(0, 11);
                         String pa = sp.getString("LAT2","").substring(0, 11);
                         Toast.makeText(MainActivity.this,"采样点②"+"\r\n"+"经度："+po+"\r\n"+"纬度："+pa,Toast.LENGTH_SHORT).show();
                         publishmessageplus(mqtt_pub_position, "{\"Position\":{\"Lon\":"+po+",\"Lat\":"+pa+"}}");
-//                        publishmessageplus(mqtt_pub_position, "{\"Position\":{\"Lon\":114.42490271,\"Lat\":30.52189395}}");
                     } else if (R.id.rb_aim3 == checkedId) {
-                        String po = sp.getString("LON3","").substring(0, 11);//这里注意，LabVIEW下位机的数据解析！
+                        String po = sp.getString("LON3","").substring(0, 11);
                         String pa = sp.getString("LAT3","").substring(0, 11);
                         Toast.makeText(MainActivity.this,"采样点③"+"\r\n"+"经度："+po+"\r\n"+"纬度："+pa,Toast.LENGTH_SHORT).show();
                         publishmessageplus(mqtt_pub_position, "{\"Position\":{\"Lon\":"+po+",\"Lat\":"+pa+"}}");
-//                        publishmessageplus(mqtt_pub_position, "{\"Position\":{\"Lon\":114.42495378,\"Lat\":30.52174155}}");
                     } else if (R.id.rb_aim4 == checkedId) {
-                        String po = sp.getString("LON4","").substring(0, 11);//这里注意，LabVIEW下位机的数据解析！
+                        String po = sp.getString("LON4","").substring(0, 11);
                         String pa = sp.getString("LAT4","").substring(0, 11);
                         Toast.makeText(MainActivity.this,"采样点④"+"\r\n"+"经度："+po+"\r\n"+"纬度："+pa,Toast.LENGTH_SHORT).show();
                         publishmessageplus(mqtt_pub_position, "{\"Position\":{\"Lon\":"+po+",\"Lat\":"+pa+"}}");
-//                        publishmessageplus(mqtt_pub_position, "{\"Position\":{\"Lon\":114.42486511,\"Lat\":30.52160747}}");
                     } else if (R.id.rb_aim5 == checkedId) {
-                        String po = sp.getString("LON5","").substring(0, 11);//这里注意，LabVIEW下位机的数据解析！
+                        String po = sp.getString("LON5","").substring(0, 11);
                         String pa = sp.getString("LAT5","").substring(0, 11);
                         Toast.makeText(MainActivity.this,"采样点⑤"+"\r\n"+"经度："+po+"\r\n"+"纬度："+pa,Toast.LENGTH_SHORT).show();
                         publishmessageplus(mqtt_pub_position, "{\"Position\":{\"Lon\":"+po+",\"Lat\":"+pa+"}}");
-//                        publishmessageplus(mqtt_pub_position, "{\"Position\":{\"Lon\":114.42463938,\"Lat\":30.52162567}}");
                     } else if (R.id.rb_aim6 == checkedId) {
-                        String po = sp.getString("LON6","").substring(0, 11);//这里注意，LabVIEW下位机的数据解析！
+                        String po = sp.getString("LON6","").substring(0, 11);
                         String pa = sp.getString("LAT6","").substring(0, 11);
                         Toast.makeText(MainActivity.this,"采样点⑥"+"\r\n"+"经度："+po+"\r\n"+"纬度："+pa,Toast.LENGTH_SHORT).show();
                         publishmessageplus(mqtt_pub_position, "{\"Position\":{\"Lon\":"+po+",\"Lat\":"+pa+"}}");
-//                        publishmessageplus(mqtt_pub_position, "{\"Position\":{\"Lon\":114.42455069,\"Lat\":30.52180111}}");
                     }
-//                else if (R.id.rb_Planning == checkedId) {
-//                    publishmessageplus(mqtt_pub_mode, "{\"Mode\":2}");}
                     else if (R.id.rb_homeward == checkedId) {
                         publishmessageplus(mqtt_pub_position, "{\"Position\":{\"Lon\":114.4241956,\"Lat\":30.52195261}}");//{"Position":{"Lon":114.42419561,"Lat":30.52195261}}
                     }
                 }
-                selectedPoint = group.findViewById(checkedId);//单选组选中选项
-
-//                Toast.makeText(MainActivity.this,selectedPoint.getText().toString(),Toast.LENGTH_SHORT).show();
+                selectedPoint = group.findViewById(checkedId);                                      //单选组选中选项名称，便于标定水质记录
             }
         });
 
-        initJoystick();  //初始化手动控制摇杆
-
-        Mqtt_init();   //调用MQTT通讯初始化函数
-        startReconnect();   //调用MQTT通讯重连函数
+        Mqtt_init();                                                                                //调用MQTT通讯初始化函数
+        startReconnect();                                                                           //调用MQTT通讯重连函数
         //设计Handler是用来结合线程的消息队列来发送、处理Message对象，关联线程和该线程的消息队列。作为线程通信的桥梁，再通过主线程更新UI
         handler = new Handler() {
             public void handleMessage(Message msg) {
@@ -430,71 +386,55 @@ public class MainActivity extends AppCompatActivity {
                     case 3:  //MQTT 收到消息回传   UTF8Buffer msg=new UTF8Buffer(object.toString());
                         //处理message 传过来的 obj字段（里面包了数据）截取主题
                         String T = msg.obj.toString().substring(msg.obj.toString().indexOf("user\"/") + 26, msg.obj.toString().indexOf("---"));//user"/
-                        //Toast.makeText(MainActivity.this,T ,Toast.LENGTH_LONG).show();//弹窗功能。测试用代码，查看通讯收到的信息内容。
                         //定义局部变量，方便按照接收到的主题，进行数据处理。
                         String S = "Longitude";
                         String S1 = "Latitude";
                         String S2 = "DirectionAngle";
                         String S3 = "USVSpeed";
                         String S4 = "Salinity";
-
                         if (T.equals(S)) {
-//                            String T_val = msg.obj.toString().substring(msg.obj.toString().indexOf("Longitude\":") + 11,msg.obj.toString().indexOf("Longitude\":") + 22);
                             //截取数据
                             String T_val = msg.obj.toString().substring(msg.obj.toString().indexOf("Longitude\":") + 11, msg.obj.toString().indexOf("}}"));
-//                            float num = Float.parseFloat(T_val);      //为方便进行数据处理，现将截取的字符串转为float
                             double num = Double.parseDouble(T_val);
                             g_lon = num;
                             //四舍五入规范数据格式，截取数据
-                            String str = String.format("%.7f", num);   //改变数据类型，装换成字符串的形式
-                            String text_val = "Longitude:" + str + "°";    //字符串拼接，名称：数据 单位
+                            String str = String.format("%.7f", num);                                //改变数据类型，装换成字符串的形式
+                            String text_val = "Longitude:" + str + "°";                             //字符串拼接，名称：数据 单位
                             //String text_val = "经度：" + str + "°";
-                            text_lon.setText(text_val);               //写入对应文本显示控件
+                            text_lon.setText(text_val);                                             //写入对应文本显示控件，在主进程 handler 里面更新UI  既保证了稳定性  又不影响网络传输
                         }
                         if (T.equals(S1)) {
-//                            String T_val1 = msg.obj.toString().substring(msg.obj.toString().indexOf("Latitude\":")+10,msg.obj.toString().indexOf("Latitude\":") + 20);
                             String T_val1 = msg.obj.toString().substring(msg.obj.toString().indexOf("Latitude\":") + 10, msg.obj.toString().indexOf("}}"));
                             double num = Double.parseDouble(T_val1);
-//                            float num = Float.parseFloat(T_val1);
                             g_lat = num;
                             String str1 = String.format("%.7f", num);
                             String text_val1 = "Latitude:  " + str1 + "°";
                             //String text_val1 = "纬度：" + str + "°";
-                            //在主进程 handler 里面更新UI  既保证了稳定性  又不影响网络传输
                             text_lat.setText(text_val1);
                         }
                         if (T.equals(S2)) {
-//                            String T_val2 = msg.obj.toString().substring(msg.obj.toString().indexOf("DirectionAngle\":") + 16,msg.obj.toString().indexOf("DirectionAngle\":") + 21);
                             String T_val2 = msg.obj.toString().substring(msg.obj.toString().indexOf("DirectionAngle\":") + 16, msg.obj.toString().indexOf("}}"));
                             float num = Float.parseFloat(T_val2);
                             g_dir = num;
                             String str2 = String.format("%.1f", num);
                             String text_val2 = "Heading:  " + str2 + "°";
                             //String text_val2 = "航向：" + str + "°";
-                            //Toast.makeText(MainActivity.this,Float.toString(num),Toast.LENGTH_LONG).show();//弹窗功能
-//                            Toast.makeText(MainActivity.this,T_val2,Toast.LENGTH_LONG).show();//弹窗功能
-//                            mIv2.animate().rotation(-num).setDuration(200).start();   //此处利用图片转动的实现表盘显示数据的效果。
-//                            num = Integer.parseInt(T_val);//不能随便传值出去，会报错！
                             text_head.setText(text_val2);
                         }
                         if (T.equals(S3)) {
-//                            String T_val3 = msg.obj.toString().substring(msg.obj.toString().indexOf("USVSpeed\":")+10,msg.obj.toString().indexOf("USVSpeed\":") + 13);
                             String T_val3 = msg.obj.toString().substring(msg.obj.toString().indexOf("USVSpeed\":") + 10, msg.obj.toString().indexOf("}}"));
                             float num = Float.parseFloat(T_val3);
                             String str3 = String.format("%.1f", num);
                             String text_val3 = "Speed:      " + str3 + " km/h";
                             //String text_val3 = "航速：" + str3 + " km/h";
-                            //在主进程 handler 里面更新UI  既保证了稳定性  又不影响网络传输
                             text_speed.setText(text_val3);
                         }
                         if (T.equals(S4)) {
                             //注意：这里变量命名以及UI上的盐度（yandu\nacl）对应云数据为CurrentTemperature“当前温度”。。。后期检测指标待确定。
-//                            String T_val4 = msg.obj.toString().substring(msg.obj.toString().indexOf("CurrentTemperature\":") + 20, msg.obj.toString().indexOf("CurrentTemperature\":") + 22);
                             String T_val4 = msg.obj.toString().substring(msg.obj.toString().indexOf("Salinity\":") + 10, msg.obj.toString().indexOf("}}")); //精度格式待定~
                             float num = Float.parseFloat(T_val4);
                             String str3 = String.format("%.1f", num);
-
-                            String text_val4 = "盐度：" + str3 + " ‰";    //拼接字符串
+                            String text_val4 = "盐度：" + str3 + " ‰";
                             text_nacl.setText(text_val4);
                         }
                         break;
@@ -533,31 +473,28 @@ public class MainActivity extends AppCompatActivity {
                     default:
                         break;
                 }
-                navigateTo(g_lon,g_lat,g_dir);
 
+                navigateTo(g_lon,g_lat,g_dir);                                                      //接收同步显示无人艇位姿
             }
         };
     }
 
-
-
-
-    //为方便开发调试，设置长按触发免账户登录
+    //长按跳转路径规划界面
     private class MyOnLongClickListenr implements View.OnLongClickListener {
         @Override
         public boolean onLongClick(View v) {
-            Intent intent = new Intent(MainActivity.this, SetpointActivity.class);//初始化指标网页界面
-            startActivity(intent);//启动界面
+            Intent intent = new Intent(MainActivity.this, SetpointActivity.class);    //初始化指标网页界面
+            startActivity(intent);                                                                  //启动界面
             return true;
         }
     }
 
-    //为方便开发调试，设置长按触发免账户登录
+    //长按本地试航视频展示界面
     private class MyVideoListenr implements View.OnLongClickListener {
         @Override
         public boolean onLongClick(View v) {
-            Intent intent = new Intent(MainActivity.this, LocalVideoActivity.class);//初始化指标网页界面
-            startActivity(intent);//启动界面
+            Intent intent = new Intent(MainActivity.this, LocalVideoActivity.class);  //初始化指标网页界面
+            startActivity(intent);                                                                  //启动界面
             return true;
         }
     }
@@ -565,14 +502,13 @@ public class MainActivity extends AppCompatActivity {
     //调速杆相关函数
     private void bindViews() {
         sb_rpm = (SeekBar) findViewById(R.id.sb_speed);
-        txt_cur = (TextView) findViewById(R.id.txt_rspeed);//初始化界面布局控件
+        txt_cur = (TextView) findViewById(R.id.txt_rspeed);
         sb_rpm.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                //txt_cur.setText("转速：" + progress);
-                txt_cur.setText("setSpeed: " + progress);
+                txt_cur.setText("转速：" + progress);
+//                txt_cur.setText("setSpeed: " + progress);
                 publishmessageplus(mqtt_pub_rpm, "{\"setrpm\":" + progress + "}");
-//                Toast.makeText(MainActivity.this, "{\"setrpm\":" + progress + "}", Toast.LENGTH_SHORT).show();
             }
 
             @Override
@@ -587,31 +523,18 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    //测试手柄用到的信息提示，可实时反应客户端的手动指令
-    private String getCurTime() {
-        return new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(System.currentTimeMillis());
-    }
-
-    private void showAction(String string) {
-        mmaction.setText(text.length() > 2000 ? text = "" : (text = (getCurTime() + tab + string + newLine + text)));
-    }
-
     //手动控制摇杆相关函数
     //初始化
     private void initJoystick() {
         try {
-
             mmview.setCallback(callback);
             mmaction = (TextView) findViewById(R.id.mmaction);
         } catch (Exception e) {
             e.printStackTrace();
         }
-
     }
-
-    //手动指定方向动作
+    //手动指定方向动作指令发布
     private CircleViewByImage.ActionCallback callback = new CircleViewByImage.ActionCallback() {
-
         @Override
         public void forwardMove() {
             showAction("Up");
@@ -639,7 +562,6 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void centerMove() {
 //                    showAction("Move a little in center area");
-
         }
 
         @Override
@@ -654,43 +576,15 @@ public class MainActivity extends AppCompatActivity {
             publishmessageplus(mqtt_pub_wsad, "{\"WSAD\":10000}");
         }
     };
-
-    // 全屏显示
-    private void fullScreenConfig() {
-        // 去除ActionBar
-        // 如果该类 extends Activity，使用下面这句
-        requestWindowFeature(Window.FEATURE_NO_TITLE);
-        // 如果该类 extends AppCompatActivity，使用下面这句
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().hide();
-        }
-
-        //去除状态栏，如 电量、Wifi信号等
-//        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
-//                WindowManager.LayoutParams.FLAG_FULLSCREEN);
+    //测试手柄用到的信息提示，可实时反应客户端的手动指令
+    private String getCurTime() {
+        return new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(System.currentTimeMillis());
+    }
+    private void showAction(String string) {
+        mmaction.setText(text.length() > 2000 ? text = "" : (text = (getCurTime() + tab + string + newLine + text)));
     }
 
-
-
-    //水质数据库释放资源接口 + 百度地图的生命周期
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (database != null) {
-            database.close();
-        }
-        if (waterDataBase != null) {
-            waterDataBase.close();
-        }
-
-        if(null!= mapView){
-            mapView.onDestroy();
-        }
-//        mapView.onDestroy();
-        BD_View.setMyLocationEnabled(false);
-        mLocationClient.stop();
-    }
-
+    //【UI右上两按钮单独写出点击函数】
     //记录水质数据函数
     public void insert(View source) {
         String sql = "insert into user(采样点,时间,水质)values(?,?,?)";
@@ -700,7 +594,11 @@ public class MainActivity extends AppCompatActivity {
                         text_nacl.getText().toString()});
         Toast.makeText(MainActivity.this, "数据记录完成", Toast.LENGTH_SHORT).show();
     }
-
+    //清空数据库函数
+    public void delete(View source) {
+        String sql = "delete from user";
+        database.execSQL(sql, new String[]{});
+    }
     //水质数据的界面传值
     private ArrayList<Map<String, String>> cursorCursorToList(Cursor cursor) {
         ArrayList<Map<String, String>> result = new ArrayList<>();
@@ -714,7 +612,7 @@ public class MainActivity extends AppCompatActivity {
         return result;
     }
 
-    //连线
+    //无人艇实时动态连线【待优化……】
     private void showPathline(List<LatLng> points){
         OverlayOptions mOverlayOptions = new PolylineOptions()
                 .width(10)
@@ -725,31 +623,10 @@ public class MainActivity extends AppCompatActivity {
         Overlay mPolyline = BD_View.addOverlay(mOverlayOptions);
     }
 
-    //清空数据库函数
-    public void delete(View source) {
-        String sql = "delete from user";
-        database.execSQL(sql, new String[]{});
-//        float lon = Float.parseFloat(text_lon.getText().toString());
-//        float lat = Float.parseFloat(text_lat.getText().toString());
-//        Toast.makeText(MainActivity.this,text_lon.getText(),Toast.LENGTH_SHORT).show();
-//        db.execSQL("update sqlite_sequence set seq=0 where name='stu2_tb'");//实现id排序从1开始
-    }
-
-    private class MyLocationListener extends BDAbstractLocationListener {
-
-        @Override
-        public void onReceiveLocation(BDLocation bdLocation) {
-            double lon = Float.parseFloat(text_lon.getText().toString());
-            double lat = Float.parseFloat(text_lat.getText().toString());
-            float dir = Float.parseFloat(text_head.getText().toString());
-
-            navigateTo(lon , lat , dir);
-        }
-    }
-    //30.52530678,114.4362567
+    //地图定位与导航函数【待优化……GPS纠偏】
     private void navigateTo(double lon, double lat, float dir) {
         if(isFirstLocate){
-            LatLng P = new LatLng(30.52530678,114.4362567);
+            LatLng P = new LatLng(30.52530678,114.4362567);                                  //无人艇初始化位姿
             MapStatusUpdate update = MapStatusUpdateFactory.newLatLng(P);
             BD_View.animateMapStatus(update);
             update = MapStatusUpdateFactory.zoomTo(18f);
@@ -757,14 +634,10 @@ public class MainActivity extends AppCompatActivity {
             isFirstLocate=false;
         }
 
-        //查阅官方文档的优化：
-//初始化坐标转换工具类，指定源坐标类型和坐标数据
-// sourceLatLng待转换坐标
         CoordinateConverter converter  = new CoordinateConverter()
                 .from(CoordinateConverter.CoordType.GPS)
                 .coord(new LatLng(lat,lon));
 
-//desLatLng 转换后的坐标
         LatLng P = converter.convert();
 //        GpsCorrect ptWGS = new GpsCorrect();
 //        LatLng P = ptWGS.WGS2BD(lon,lat);     //GPS纠偏，地球坐标系转百度坐标系
@@ -777,14 +650,49 @@ public class MainActivity extends AppCompatActivity {
         BitmapDescriptor mCurrentMarker = BitmapDescriptorFactory.fromResource(R.drawable.boat);
         MyLocationConfiguration config = new MyLocationConfiguration(MyLocationConfiguration.LocationMode.NORMAL, true, mCurrentMarker);
         BD_View.setMyLocationConfigeration(config);                  //地图显示定位图标
+        //轨迹显示【可用！】
+//        if(P.latitude!=0&&P.longitude!=0){
+//            USV_points.add(new LatLng(P.latitude,P.longitude));
+//        }
+//        if(USV_points.size()>3){
+//            showPathline(USV_points);
+//        }
     }
 
+    // 全屏显示【已注释】
+    private void fullScreenConfig() {
+        // 去除ActionBar
+        // 如果该类 extends Activity，使用下面这句
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
+        // 如果该类 extends AppCompatActivity，使用下面这句
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().hide();
+        }
+        //去除状态栏，如 电量、Wifi信号等
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                WindowManager.LayoutParams.FLAG_FULLSCREEN);
+    }
+    //水质数据库释放资源接口 + 百度地图的生命周期
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (database != null) {
+            database.close();
+        }
+        if (waterDataBase != null) {
+            waterDataBase.close();
+        }
+        if(null!= mapView){
+            mapView.onDestroy();
+        }
+        BD_View.setMyLocationEnabled(false);
+        mLocationClient.stop();
+    }
     @Override
     protected void onResume() {
         super.onResume();
         mapView.onResume();
     }
-
     @Override
     protected void onPause() {
         super.onPause();
@@ -807,7 +715,6 @@ public class MainActivity extends AppCompatActivity {
         text_nacl = findViewById(R.id.text_yandu);
         Pump_Switch = findViewById(R.id.Pump_Switch);
         ly_test = findViewById(R.id.water_quality);
-//        image_head = findViewById(R.id.image_2);
         USV_Rg = findViewById(R.id.rg_boat);
         Sample_Rg = findViewById(R.id.rg_aim);
         homeward = findViewById(R.id.rb_homeward);
@@ -815,7 +722,6 @@ public class MainActivity extends AppCompatActivity {
         mTextClock = findViewById(R.id.textClock);
         planPath = findViewById(R.id.rb_Planning);
 
-//        list_point = findViewById(R.id.fx_point);
         layout_whool = findViewById(R.id.layout_whool);
         mmview = findViewById(R.id.joystick);
         data_bases = findViewById(R.id.databases);
@@ -823,17 +729,12 @@ public class MainActivity extends AppCompatActivity {
         txt_mode = findViewById(R.id.txt_mode);
         txt_GB = findViewById(R.id.web_GB);
         mSwitch = findViewById(R.id.main_switch);
-//        view = (CircleViewByImage) findViewById(R.id.joystick_view);
-//        action = (TextView) findViewById(R.id.action);
 
-
-//        mIv2 = findViewById(R.id.image_pointer);
+        //通讯相关函数
         Mqtt_init();
         Mqtt_connect();
         startReconnect();
     }
-
-
 
     //一下均是通讯相关函数的定义
     private void Mqtt_init() {

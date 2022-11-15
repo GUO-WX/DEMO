@@ -10,12 +10,12 @@ import android.os.Handler;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
-import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -39,7 +39,6 @@ import com.baidu.mapapi.search.geocode.GeoCoder;
 import com.baidu.mapapi.search.geocode.OnGetGeoCoderResultListener;
 import com.baidu.mapapi.search.geocode.ReverseGeoCodeResult;
 import com.example.mqtt_boat.GpsCorrect;
-import com.example.mqtt_boat.MainActivity;
 import com.example.mqtt_boat.R;
 
 import java.util.ArrayList;
@@ -51,11 +50,6 @@ public class SetpointActivity extends AppCompatActivity
         implements BaiduMap.OnMapStatusChangeListener, PoiItemAdapter.MyOnItemClickListener
         , OnGetGeoCoderResultListener {
 
-    // 默认逆地理编码半径范围
-//    private static final int sDefaultRGCRadius = 500;
-    PathDataBase pathDataBase;
-    private PathSQLiteOpenHelper MyPathSQLiteOpenHelper;
-
     public LatLng mLatLon;
     public List<LatLng> points = new ArrayList<LatLng>();
     public Overlay mPolyline;
@@ -65,17 +59,12 @@ public class SetpointActivity extends AppCompatActivity
     private BaiduMap mBaiduMap;
     private LatLng mCenter;
     private Handler mHandler;
-    public int PonitID=0;
     private TextView point_lon;
     private TextView point_lat;
-    private TextView point_id;
-    private RadioButton po_id;
     private Switch showSwitch;
 
     private TextView showPoint;
-    private TextView toMain;
     private Button btn_toList;
-    private Button btn_toMain;
     private Button btn_showPath;
     private RadioGroup setSample_Rg;
 
@@ -95,18 +84,13 @@ public class SetpointActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_setpoint);
 
-        MyPathSQLiteOpenHelper = new PathSQLiteOpenHelper(this);
-        pathDataBase = new PathDataBase(this);//实例化水质数据库
-        pathBase = pathDataBase.getWritableDatabase(); //声明数据库单元
-
         simpleDataBase = new SimpleDataBase(this);//实例化水质数据库
         simpleBase = simpleDataBase.getWritableDatabase(); //声明数据库单元
 
         sp = getSharedPreferences("setSimple",MODE_PRIVATE);
 
         init();
-        initData();
-
+        setTitle("采样规划");
         //切换显示/隐藏路径
         showSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
@@ -157,41 +141,21 @@ public class SetpointActivity extends AppCompatActivity
                         new Object[]{poid,
                                 point_lon.getText().toString(),
                                 point_lat.getText().toString()});
-//                Toast.makeText(SetpointActivity.this, "采样点记录完成", Toast.LENGTH_SHORT).show();
             }
         });
 
-
-        //跳转数据记录界面
+        //跳转采样点数据记录界面
         btn_toList.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String sql = "select * from user";   //数据库操作语句，按时间排序，检索数据库 ??
-                Cursor cursor = simpleBase.rawQuery(sql, null);  //操作数据库的光标
-                ArrayList<Map<String, String>> listData = cursorCursorToList(cursor);  //界面传值动态数组
-                Bundle bundle = new Bundle();   //实例化传值数据类型
-                bundle.putSerializable("simpledata", listData);  //通过bundle对数据进行封装
+                String sql = "select * from user";                                                  //数据库操作语句，按时间排序，检索数据库 ??
+                Cursor cursor = simpleBase.rawQuery(sql, null);                         //操作数据库的光标
+                ArrayList<Map<String, String>> listData = cursorCursorToList(cursor);               //界面传值动态数组
+                Bundle bundle = new Bundle();                                                       //实例化传值数据类型
+                bundle.putSerializable("simpledata", listData);                                     //通过bundle对数据进行封装
                 Intent intent = new Intent(SetpointActivity.this, PathListActivity.class);  //初始化历史数据界面
-                intent.putExtras(bundle);    //传递的数据是bundle类型
-                startActivity(intent);    //启动界面
-            }
-        });
-
-        //跳转至主界面！
-        btn_toMain.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-//                String sql = "select * from user";   //数据库操作语句，按时间排序，检索数据库 ??
-//                Cursor cursor = simpleBase.rawQuery(sql, null);  //操作数据库的光标
-//                ArrayList<Map<String, String>> listData = cursorCursorToList(cursor);  //界面传值动态数组
-//                Bundle bundle = new Bundle();   //实例化传值数据类型
-//                bundle.putSerializable("simpledata", listData);  //通过bundle对数据进行封装
-                Intent intent = new Intent(SetpointActivity.this, MainActivity.class);  //初始化历史数据界面
-//                intent.putExtras(bundle);    //传递的数据是bundle类型
-                startActivity(intent);    //启动界面
-//                String content = sp.getString("P_LON","");
-//                String content1 = sp.getString("P_LAT","");
-//                Toast.makeText(SetpointActivity.this, content+content1, Toast.LENGTH_SHORT).show();//弹窗功能
+                intent.putExtras(bundle);                                                           //传递的数据是bundle类型
+                startActivity(intent);                                                              //启动界面
             }
         });
     }
@@ -203,12 +167,6 @@ public class SetpointActivity extends AppCompatActivity
         editor.putString(setLon_id,LON);
         editor.putString(setLat_id,LAT);
         editor.commit();
-    }
-
-    private void initData() {
-
-        //假数据？？？
-//        mPathList = new ArrayList<>();
     }
 
     @Override
@@ -240,9 +198,6 @@ public class SetpointActivity extends AppCompatActivity
         if (pathBase != null) {
             pathBase.close();
         }
-        if (pathDataBase != null) {
-            pathDataBase.close();
-        }
         if (null != mHandler) {
             mHandler.removeCallbacksAndMessages(null);
         }
@@ -258,20 +213,16 @@ public class SetpointActivity extends AppCompatActivity
 
     private void init() {
         initRecyclerView();
-
         mHandler = new Handler(this.getMainLooper());
-
         initMap();
     }
     private void initMap() {
         mMapView = findViewById(R.id.mapview);
         point_lon = findViewById(R.id.txt_point_lon);
         point_lat = findViewById(R.id.txt_point_lat);
-        point_id = findViewById(R.id.txt_point_ID);
         setSample_Rg = findViewById(R.id.rg_simple);
 
         showPoint = findViewById(R.id.txt_ManyPoint);
-        btn_toMain = findViewById(R.id.btn_toMain);
         btn_toList = findViewById(R.id.btn_toList);
         btn_showPath = findViewById(R.id.btn_showpath);
         showSwitch = findViewById(R.id.show_switch);
@@ -353,7 +304,7 @@ public class SetpointActivity extends AppCompatActivity
     }
 
     /**
-     * 逆地理编码请求
+     * 逆地理编码请求,GPS纠偏问题！
      *
      * @param latLng
      */
@@ -385,7 +336,6 @@ public class SetpointActivity extends AppCompatActivity
         }
 
         mGeoCoder.setOnGetGeoCodeResultListener(this);
-//        mGeoCoder.reverseGeoCode(reverseGeoCodeOption);
     }
 
     //水质数据的界面传值
@@ -423,36 +373,11 @@ public class SetpointActivity extends AppCompatActivity
     public void setPoint(View source) {
         btn_showPath.setClickable(false);
         showPathline(points);
-
-
-
-
-//        Toast.makeText(SetpointActivity.this, String.valueOf(PonitID), Toast.LENGTH_SHORT).show();
-
-//        String LON = point_lon.getText().toString().trim();
-//        String LAT = point_lat.getText().toString().trim();
-//
-//        OnePoint mPoint = new OnePoint();
-//        mPoint.setP_lon(LON);
-//        mPoint.setP_lat(LAT);
-//
-//        // 插入数据库中
-//        long rowId = MyPathSQLiteOpenHelper.insertData(mPoint);
-//        if (rowId != -1) {
-//            Toast.makeText(SetpointActivity.this,"添加成功！",Toast.LENGTH_SHORT).show();
-//        } else {
-//            Toast.makeText(SetpointActivity.this,"添加失败！",Toast.LENGTH_SHORT).show();
-//        }
-//
-//        List<OnePoint> mPointList = MyPathSQLiteOpenHelper.queryAllFromDb();
-//        showPathData(mPointList);
     }
 
     private void showPathData(List<OnePoint> ManyPoint) {
         StringBuilder stringBuilder = new StringBuilder();
         for (OnePoint po : ManyPoint) {
-//            stringBuilder.append("编号：");
-//            stringBuilder.append(po.getP_ID());
             stringBuilder.append("经度:");
             stringBuilder.append(po.getP_lon());
             stringBuilder.append(" 纬度:");
@@ -469,16 +394,7 @@ public class SetpointActivity extends AppCompatActivity
         mBaiduMap.clear();
         createCenterMarker();
         points.clear();
-//        // 从数据库中删除数据。此处在代码中写死！
-//        MyPathSQLiteOpenHelper.deleteFromDbByTopic();
-//        List<OnePoint> mPointList = MyPathSQLiteOpenHelper.queryAllFromDb();
-//        showPathData(mPointList);
     }
-
-    //跳转→数据传递到主界面
-
-    //查看→数据传递到路径列表
-
 
     @Override
     public void onGetGeoCodeResult(GeoCodeResult geoCodeResult) {
@@ -562,11 +478,18 @@ public class SetpointActivity extends AppCompatActivity
             return;
         }
 
-//        mStatusChangeByItemClick = true;
         MapStatusUpdate mapStatusUpdate = MapStatusUpdateFactory.newLatLng(poiInfo.getLocation());
         mBaiduMap.setMapStatus(mapStatusUpdate);
     }
 
-
+    /*
+     * 设置顶部工具条的标题
+     */
+    protected void setTitle(String title) {
+        ActionBar actionBar = getSupportActionBar();
+        if (actionBar != null) {
+            actionBar.setTitle(title);
+        }
+    }
 
 }

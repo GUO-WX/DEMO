@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Created by ning on 2016/1/13.
+ * GPS纠偏.
  */
 public class GpsCorrect {
     private static double pi = 3.14159265358979324D;// 圆周率
@@ -110,17 +110,5 @@ public class GpsCorrect {
         dLng = (dLng * 180.0) / (a / sqrtMagic * Math.cos(radLat) * pi);
         return new LatLng(lat + dLat, lon + dLng);
     }
-
-//    public static LatLng BD2WGS(double lon, double lat)
-//    {
-//        double x = lon - 0.0065, y = lat - 0.006;
-//        double z = Math.sqrt(x * x + y * y) - 0.00002 * Math.sin(y * x_pi);
-//        double theta = Math.atan2(y, x) - 0.000003 * Math.cos(x * x_pi);
-//        double gg_lon = z * Math.cos(theta);
-//        double gg_lat = z * Math.sin(theta);
-//        LatLng p = WGS2GCJ(gg_lon,gg_lat);
-//        return new LatLng(p.longitude* 2 - p.longitude, p.latitude* 2 - p.latitude);
-//
-//    }
 
 }

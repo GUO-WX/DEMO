@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.widget.ListView;
 import android.widget.SimpleAdapter;
 
+import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.mqtt_boat.R;
@@ -32,5 +33,17 @@ public class PathListActivity extends AppCompatActivity {
                 new String[]{"P_id","P_lon","P_lat"},
                 new int[]{R.id.tv_ID,R.id.tv_lon,R.id.tv_lat});
         pathList.setAdapter(adapter);
+
+        setTitle("规划数据表");
+    }
+
+    /*
+     * 设置顶部工具条的标题
+     */
+    protected void setTitle(String title) {
+        ActionBar actionBar = getSupportActionBar();
+        if (actionBar != null) {
+            actionBar.setTitle(title);
+        }
     }
 }

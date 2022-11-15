@@ -11,7 +11,9 @@ import com.example.mqtt_boat.R;
 
 import java.util.List;
 import java.util.Map;
-
+/**
+ * 重写的列表适配器，程序未引用，学习用，自定义程度高！！！
+ */
 public class DataListAdapter extends BaseAdapter {
 
     private Context mContext;
