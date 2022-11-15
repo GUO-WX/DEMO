@@ -36,7 +36,8 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MQTTboat"
         android:usesCleartextTraffic="true">
-        <activity android:name=".choosepoints.PathListActivity"></activity>
+        <activity android:name=".LocalVideoActivity"></activity>
+        <activity android:name=".choosepoints.PathListActivity" />
         <activity android:name=".choosepoints.SetpointActivity" />
 
         <meta-data

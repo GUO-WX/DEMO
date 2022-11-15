@@ -145,9 +145,6 @@ public class VideoActivity extends AppCompatActivity {
             case R.id.rb_rtmp999:
                 selected_videoID = "rtmp999";
                 break;
-            default:
-                selected_videoID = "http998";
-                break;
         }
 
         // 获取视频对象，播放对应的视频

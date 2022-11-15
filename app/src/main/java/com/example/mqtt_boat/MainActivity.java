@@ -282,6 +282,8 @@ public class MainActivity extends AppCompatActivity {
         });
 
         //跳转摄像头实况界面
+        HKVision.setOnLongClickListener(new MyVideoListenr());
+
         HKVision.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -545,6 +547,16 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public boolean onLongClick(View v) {
             Intent intent = new Intent(MainActivity.this, SetpointActivity.class);//初始化指标网页界面
+            startActivity(intent);//启动界面
+            return true;
+        }
+    }
+
+    //为方便开发调试，设置长按触发免账户登录
+    private class MyVideoListenr implements View.OnLongClickListener {
+        @Override
+        public boolean onLongClick(View v) {
+            Intent intent = new Intent(MainActivity.this, LocalVideoActivity.class);//初始化指标网页界面
             startActivity(intent);//启动界面
             return true;
         }
