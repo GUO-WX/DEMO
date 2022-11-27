@@ -17,7 +17,6 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.baidu.mapapi.map.BaiduMap;
@@ -87,6 +86,7 @@ public class SetpointActivity extends AppCompatActivity
         simpleDataBase = new SimpleDataBase(this);//实例化水质数据库
         simpleBase = simpleDataBase.getWritableDatabase(); //声明数据库单元
 
+        //存在本地是以文件的形式，setSimple即文件名；模式：私有【推荐】
         sp = getSharedPreferences("setSimple",MODE_PRIVATE);
 
         init();
@@ -111,7 +111,7 @@ public class SetpointActivity extends AppCompatActivity
             }
         });
 
-        //选择用艇指令事件【单选】
+        //选择采样编号【单选】
         setSample_Rg.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(RadioGroup group, int checkedId) {
@@ -131,8 +131,8 @@ public class SetpointActivity extends AppCompatActivity
                 }else if (R.id.rb_simple6 == checkedId) {
                     poid = "6";
                 }
-                savePointDate(poid,polon,polat);
-                setMarka(mLatLon);
+                savePointDate(poid,polon,polat);           //调用SharedPreferences存储
+                setMarka(mLatLon);                         //调用标记
                 Toast.makeText(SetpointActivity.this, poid+"号采样点记录完成！", Toast.LENGTH_SHORT).show();//弹窗功能
 
                 //代替传值，选点后直接写入底层数据库
@@ -161,12 +161,12 @@ public class SetpointActivity extends AppCompatActivity
     }
 
     public void savePointDate(String ID, String LON, String LAT){
-        SharedPreferences.Editor editor = sp.edit();
-        String setLon_id = "LON"+ID;
+        SharedPreferences.Editor editor = sp.edit();   //创建编辑工具
+        String setLon_id = "LON"+ID;                   //字符串拼接，标识第几个采样点。
         String setLat_id = "LAT"+ID;
-        editor.putString(setLon_id,LON);
+        editor.putString(setLon_id,LON);               //键值对，存入
         editor.putString(setLat_id,LAT);
-        editor.commit();
+        editor.commit();                               //确认存入操作or editor.apply();
     }
 
     @Override
@@ -212,7 +212,7 @@ public class SetpointActivity extends AppCompatActivity
     }
 
     private void init() {
-        initRecyclerView();
+//        initRecyclerView();
         mHandler = new Handler(this.getMainLooper());
         initMap();
     }
@@ -224,7 +224,7 @@ public class SetpointActivity extends AppCompatActivity
 
         showPoint = findViewById(R.id.txt_ManyPoint);
         btn_toList = findViewById(R.id.btn_toList);
-        btn_showPath = findViewById(R.id.btn_showpath);
+//        btn_showPath = findViewById(R.id.btn_showpath);
         showSwitch = findViewById(R.id.show_switch);
 
         if (null == mMapView) {
@@ -289,19 +289,19 @@ public class SetpointActivity extends AppCompatActivity
         bitmapDescriptor.recycle();
     }
 
-    /**
-     * 初始化recyclerView
-     */
-    private void initRecyclerView() {
-        mRecyclerView = findViewById(R.id.poi_list);
-        if (null == mRecyclerView) {
-            return;
-        }
-
-        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
-        layoutManager.setOrientation(RecyclerView.VERTICAL);
-        mRecyclerView.setLayoutManager(layoutManager);
-    }
+//    /**
+//     * 初始化recyclerView
+//     */
+//    private void initRecyclerView() {
+//        mRecyclerView = findViewById(R.id.poi_list);
+//        if (null == mRecyclerView) {
+//            return;
+//        }
+//
+//        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
+//        layoutManager.setOrientation(RecyclerView.VERTICAL);
+//        mRecyclerView.setLayoutManager(layoutManager);
+//    }
 
     /**
      * 逆地理编码请求,GPS纠偏问题！
@@ -338,7 +338,7 @@ public class SetpointActivity extends AppCompatActivity
         mGeoCoder.setOnGetGeoCodeResultListener(this);
     }
 
-    //水质数据的界面传值
+    //采样点数据的界面传值【待开发，传值后主界面为写入接收】
     private ArrayList<Map<String, String>> cursorCursorToList(Cursor cursor) {
         ArrayList<Map<String, String>> result = new ArrayList<>();
         while (cursor.moveToNext()) {
@@ -351,10 +351,10 @@ public class SetpointActivity extends AppCompatActivity
         return result;
     }
 
-    //传值储存至采样列表
-    public void hidePath(View source) {
-        mPolyline.setVisible(false);
-    }
+//    //传值储存至采样列表
+//    public void hidePath(View source) {
+//        mPolyline.setVisible(false);
+//    }
 
 
     private void showPathline(List<LatLng> points){
@@ -369,24 +369,24 @@ public class SetpointActivity extends AppCompatActivity
     }
 
 
-    //标记路径信息写入数据库+显示路径连线
-    public void setPoint(View source) {
-        btn_showPath.setClickable(false);
-        showPathline(points);
-    }
+//    //标记路径信息写入数据库+显示路径连线
+//    public void setPoint(View source) {
+//        btn_showPath.setClickable(false);
+//        showPathline(points);
+//    }
 
-    private void showPathData(List<OnePoint> ManyPoint) {
-        StringBuilder stringBuilder = new StringBuilder();
-        for (OnePoint po : ManyPoint) {
-            stringBuilder.append("经度:");
-            stringBuilder.append(po.getP_lon());
-            stringBuilder.append(" 纬度:");
-            stringBuilder.append(po.getP_lat() + "\n");
-        }
-        showPoint.setText(stringBuilder.toString());
-    }
+//    private void showPathData(List<OnePoint> ManyPoint) {
+//        StringBuilder stringBuilder = new StringBuilder();
+//        for (OnePoint po : ManyPoint) {
+//            stringBuilder.append("经度:");
+//            stringBuilder.append(po.getP_lon());
+//            stringBuilder.append(" 纬度:");
+//            stringBuilder.append(po.getP_lat() + "\n");
+//        }
+//        showPoint.setText(stringBuilder.toString());
+//    }
 
-    //清空路径节点
+    //清空“数据库”，擦除路径节点。
     public void clc_Path(View source) {
         String sql = "delete from user";
 

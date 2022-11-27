@@ -152,7 +152,7 @@ public class MainActivity extends AppCompatActivity {
         SDKInitializer.initialize(getApplicationContext());
 //        fullScreenConfig();  // 全屏显示
         setContentView(R.layout.activity_main);
-        sp = getSharedPreferences("setSimple",MODE_PRIVATE);                                  //采样点信息，通过规划存储在应用内存
+        sp = getSharedPreferences("setSimple",MODE_PRIVATE);  //用于取值                                //采样点信息，通过规划存储在应用内存
 
         waterDataBase = new WaterDataBase(this);                                            //实例化水质数据库
         database = waterDataBase.getWritableDatabase();                                             //声明数据库单元
