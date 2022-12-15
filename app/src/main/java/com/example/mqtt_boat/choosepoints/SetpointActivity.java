@@ -289,20 +289,6 @@ public class SetpointActivity extends AppCompatActivity
         bitmapDescriptor.recycle();
     }
 
-//    /**
-//     * 初始化recyclerView
-//     */
-//    private void initRecyclerView() {
-//        mRecyclerView = findViewById(R.id.poi_list);
-//        if (null == mRecyclerView) {
-//            return;
-//        }
-//
-//        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
-//        layoutManager.setOrientation(RecyclerView.VERTICAL);
-//        mRecyclerView.setLayoutManager(layoutManager);
-//    }
-
     /**
      * 逆地理编码请求,GPS纠偏问题！
      *
